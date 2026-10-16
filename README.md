@@ -13,6 +13,8 @@ A web form for the **1 Million Voices** listening tools (Short Answer Focused ve
   - 🎤 next to every short-answer box turns speech into text in that box. People can talk for as long as they like (up to 3 minutes per tap; tap again to add more) and then edit the text. Uses the browser's free speech recognition: Chrome, Edge, Safari and Android Chrome (needs internet). In Firefox the mic button doesn't show, and people type.
   - Only text is stored, never audio. The `<id>_spoken` column says whether the answer, the follow-up or both were spoken.
 
+See STATUS.md for the current state, Sheet locks and how to change questions safely.
+
 ## Links
 - **Live form:** https://gaupalemunna76.github.io/1mv-listening-form/
 - Straight to one form: `?t=youth`, `?t=parent`, `?t=public` (e.g. `…/1mv-listening-form/?t=parent&lang=mr`). The link opens the start screen with that form already chosen.
