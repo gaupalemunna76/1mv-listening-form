@@ -1,15 +1,15 @@
 // 1MV Listening Form — one question per screen (Youth Voice look), with follow-ups, conditions,
 // optional 🔊 listen and 🎤 speak, three languages, offline save and Google Sheet sync.
-import { TOOLS } from "./questions.js?v=20261016-2341";
-import { LANGS, UI, t } from "./i18n.js?v=20261016-2341";
-import { assess, isDistress } from "./probe.js?v=20261016-2341";
-import { SHEET_URL as CONFIG_SHEET_URL } from "./config.js?v=20261016-2341";
-import { canSpeak, canListen, loadVoices, pickVoice, speak, stopSpeaking, unlockSpeech, listen, isMobile } from "./speech.js?v=20261016-2341";
+import { TOOLS } from "./questions.js?v=20261017-0040";
+import { LANGS, UI, t } from "./i18n.js?v=20261017-0040";
+import { assess, isDistress } from "./probe.js?v=20261017-0040";
+import { SHEET_URL as CONFIG_SHEET_URL } from "./config.js?v=20261017-0040";
+import { canSpeak, canListen, loadVoices, pickVoice, speak, stopSpeaking, unlockSpeech, listen, isMobile } from "./speech.js?v=20261017-0040";
 
 const params0 = new URLSearchParams(location.search);
 // Local test copies (localhost) never send to the real Sheet unless ?sync is added.
 const SHEET_URL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && !params0.has("sync") ? "" : CONFIG_SHEET_URL;
-const VERSION = "20261016-2341";
+const VERSION = "20261017-0040";
 const DRAFT = "lf.draft.v2";
 const STORE = "lf.responses.v1";
 const TOOL_NAME = "1MV Listening Form";
