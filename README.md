@@ -1,10 +1,10 @@
 # 1MV Listening Form
 
-A Google-Forms-style web form for the **1 Million Voices** listening tools (Short Answer Focused version, 16 Oct 2026). It works like a Google Form: sections, choice questions, dropdowns and short answers. It adds what Google Forms cannot do:
+A web form for the **1 Million Voices** listening tools (Short Answer Focused version, 16 Oct 2026). It has the look of the Youth Voice tool (github.com/gaupalemunna76/youth-voice): one question per screen, section chips and a progress bar, tap-to-choose option chips, a big round 🎤 next to every answer box, and dark mode. It works like a Google Form (choices, dropdowns, short answers) and adds what Google Forms cannot do:
 
 - **Follow-up questions (probing).** When a short answer is empty, a non-answer ("yes", "ok", "pata nahi"), too short, or only general words ("good", "peaceful", "hard work"), the form asks **one** follow-up under that question. It is asked once only; pressing Next again moves on.
 - **If-conditions.** Questions appear only when they apply. For example, the class question shows only for youth in school or college, "What is stopping you?" shows only after "Not yet", and parents who never visited the school get "What makes it hard to visit?" instead of "Why did you visit?".
-- **Languages.** English and Hindi, switchable at any point without losing answers. More can be added (see below).
+- **Languages.** English, Hindi and Marathi, switchable at any point without losing answers. More can be added (see below).
 - **Safeguarding.** If an answer suggests self-harm, the form shows the free Tele-MANAS helpline (14416) and flags the response.
 - **Works offline.** Answers are saved on the device as people type, so an unfinished form can be resumed. Finished forms are sent to the Google Sheet when the device is online.
 
@@ -15,7 +15,7 @@ A Google-Forms-style web form for the **1 Million Voices** listening tools (Shor
 
 ## Links
 - **Live form:** https://gaupalemunna76.github.io/1mv-listening-form/
-- Straight to one form: `?t=youth`, `?t=parent`, `?t=public` (e.g. `…/1mv-listening-form/?t=parent&lang=hi`)
+- Straight to one form: `?t=youth`, `?t=parent`, `?t=public` (e.g. `…/1mv-listening-form/?t=parent&lang=mr`). The link opens the start screen with that form already chosen.
 - Track a partner or channel: add `&src=<code>` (saved in the `source` column)
 - Responses saved on this device and CSV download: `?admin`
 
@@ -39,16 +39,16 @@ Each form gets its own tab (Youth, Parents, General Public), one row per respons
 ## Add a language
 1. Add it to `LANGS` in `i18n.js`, for example `{ code: "mr", name: "मराठी", speech: "mr-IN" }` (`speech` is the language the 🔊 and 🎤 buttons use).
 2. Add the same code next to `en`/`hi` in every entry of `UI` (`i18n.js`), `questions.js` and `states.js`. Anything not translated shows in English.
-3. Add common non-answers in that language to `NON_ANSWERS` in `probe.js` (e.g. "हो", "माहीत नाही").
+3. Add common non-answers, "no one" phrases and safety words in that language to `probe.js`.
 
-The Hindi text is a working draft. Have a native speaker review it before field use.
+The Hindi and Marathi text are working drafts (Marathi follows the team's "Natural" style, तुम्ही). Have native speakers review them before field use.
 
 ## Change and publish
 ```
-node tests/probe.test.mjs                       # follow-up rules (87 checks)
+node tests/probe.test.mjs                       # follow-up rules incl. Marathi (94 checks)
 node tests/transcript.test.mjs && node tests/phone_speech.test.mjs   # speech-to-text clean-up (16 checks)
 python -m http.server 8790                      # in another window, then:
-node tests/e2e_edge.mjs                         # full Youth form in headless Edge (33 checks)
+node tests/e2e_edge.mjs                         # full Youth form in headless Edge (36 checks)
 python set_version.py                           # stamp a new version so phones get the new files
 git add -A && git commit -m "…" && git push     # GitHub Pages updates in about a minute
 ```

@@ -1,5 +1,5 @@
-// End-to-end check in headless Microsoft Edge: fills the Youth form, triggers follow-ups and conditions,
-// switches to Hindi, submits, and checks the saved record.
+// End-to-end check in headless Microsoft Edge: walks the Youth form one question at a time, triggers
+// follow-ups and conditions, uses 🔊, switches Hindi/Marathi, submits, and checks the saved record.
 // Run: python -m http.server 8790   (in the project folder, separate window)
 //      node tests/e2e_edge.mjs
 import { spawn } from "node:child_process";
@@ -35,81 +35,99 @@ const ok = (cond, msg) => { console.log((cond ? "ok   " : "FAIL ") + msg); if (!
 await sleep(1500);
 await ev(`
   window.T = {
-    txt(id, v) { const e = document.getElementById('f_' + id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('blur')); },
-    sel(id, v) { const e = document.getElementById('f_' + id); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); },
-    pick(id, v) { document.querySelector('input[name="f_' + id + '"][value="' + v + '"]').click(); },
-    probe(id, v) { const e = document.getElementById('pa_' + id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); },
-    shown(id) { const c = document.getElementById('q_' + id); return !!c && !c.hidden; },
-    probeShown(id) { const c = document.getElementById('p_' + id); return !!c && !c.hidden; },
-    title() { return document.querySelector('.section-title')?.textContent || document.querySelector('h1')?.textContent; },
+    q() { return document.querySelector('.card')?.dataset.q || ''; },
+    txt(v) { const e = document.querySelector('.card textarea[id^=f_], .card input[id^=f_]'); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('blur')); },
+    sel(v) { const e = document.querySelector('.card select'); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); },
+    chip(v) { document.querySelector('.opt[data-v="' + v + '"]').click(); },
+    probe(v) { const e = document.querySelector('[id^=pa_]'); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); },
+    fu() { return !!document.querySelector('.followup'); },
     next() { document.getElementById('next').click(); },
+    err() { return document.getElementById('err')?.textContent || ''; },
+    text() { return document.getElementById('qtext')?.textContent || ''; },
   }; true`);
+const step = async (expr, wait = 150) => { await ev(expr + "; true"); await sleep(wait); };
 
-// Intro
-ok(await ev(`document.getElementById('start').disabled`) === true, "Start is locked until consent is ticked");
-await ev(`document.getElementById('consent').click(); document.getElementById('start').click(); true`);
-ok(await ev(`T.title()`) === "About you", "section 1 opens");
+// Start screen
+ok(await ev(`document.querySelector('[data-form=youth]').getAttribute('aria-pressed')`) === "true", "?t=youth preselects the Youth form");
+ok(await ev(`document.querySelectorAll('.langs button').length`) === 3, "three languages offered");
+ok(await ev(`document.getElementById('startBtn').disabled`) === true, "Start locked until consent");
+await step(`document.getElementById('consent').click(); document.getElementById('startBtn').click()`);
+ok(await ev(`T.q()`) === "Y1_age", "first question shown alone");
 
-// Section 1 + required check + condition
-await ev(`T.next(); true`);
-ok(await ev(`document.querySelectorAll('.q.err').length`) >= 7, "Next without answers shows required errors");
-await ev(`T.sel('Y1_age','17'); T.pick('Y2_gender','female'); T.sel('Y3_state','bihar'); T.txt('Y4_district','Gaya'); T.pick('Y5','working'); true`);
-ok(await ev(`T.shown('Y6_class')`) === false, "class question hidden for 'Working'");
-await ev(`T.pick('Y5','school'); true`);
-ok(await ev(`T.shown('Y6_class')`) === true, "class question appears for 'In school'");
-await ev(`T.sel('Y6_class','c11_12'); T.pick('Y7_institution','govt'); T.pick('Y8_income','lt3'); T.pick('Y9_disability','seeing'); T.pick('Y9_disability','no'); true`);
-ok(await ev(`[...document.querySelectorAll('input[name=f_Y9_disability]:checked')].map(x=>x.value).join()`) === "no", "'No' unticks other disability boxes");
-await ev(`T.next(); true`);
-ok(await ev(`T.title()`) === "Your future", "section 2 opens");
+// Profile questions, one per screen
+await step(`T.next()`);
+ok((await ev(`T.err()`)).length > 0 && await ev(`T.q()`) === "Y1_age", "required answer enforced");
+await step(`T.sel('17'); T.next()`);
+ok(await ev(`T.q()`) === "Y2_gender", "Next moves to the next question");
+await step(`T.chip('female')`, 700);
+ok(await ev(`T.q()`) === "Y3_state", "one tap on a choice moves on by itself");
+await step(`T.sel('bihar'); T.next()`);
+await step(`T.txt('Gaya'); T.next()`);
+await step(`T.chip('working')`, 700);
+ok(await ev(`T.q()`) === "Y7_institution", "class question skipped for 'Working'");
+await step(`document.getElementById('back').click()`);
+ok(await ev(`T.q()`) === "Y5", "Back returns to the previous question");
+await step(`T.chip('school')`, 700);
+ok(await ev(`T.q()`) === "Y6_class", "class question asked for 'In school'");
+await step(`T.sel('c11_12'); T.next()`);
+await step(`T.chip('govt')`, 700);
+await step(`T.chip('lt3')`, 700);
+await step(`T.chip('seeing'); T.chip('no')`);
+ok(await ev(`[...document.querySelectorAll('.opt[aria-pressed=true]')].map(x=>x.dataset.v).join()`) === "no", "'No' unticks other disability options");
+await step(`T.next()`);
+ok(await ev(`T.q()`) === "Y11a_work", "future section starts");
 
-// Optional speech: buttons present, nothing spoken until tapped, tapping reads the question
+// Optional speech
 await ev(`window.SAID = []; speechSynthesis.speak = u => { if (u.text.trim()) SAID.push(u.text); setTimeout(() => u.onend && u.onend(), 50); }; true`);
-ok(await ev(`document.querySelectorAll('[data-say]').length`) >= 5, "every question has a listen button");
-ok(await ev(`document.querySelectorAll('[data-mic]').length`) >= 4, "every short answer has a mic button");
+ok(await ev(`!!document.getElementById('say') && !!document.querySelector('[data-mic]')`) === true, "Listen and mic buttons shown");
 ok(await ev(`SAID.length`) === 0, "nothing is read aloud by default");
-await ev(`document.querySelector('[data-say=Y11a_work]').click(); true`);
-await sleep(1200);
-ok((await ev(`SAID.join('|')`)).includes("When you are 30, what work"), "listen button reads the question and its example");
-await ev(`document.querySelector('[data-mic=f_Y11a_work]').click(); true`);
-await sleep(2500);
-ok(await ev(`!document.getElementById('m_f_Y11a_work').hidden`) === true, "mic shows a status or error message (no real mic in headless)");
-await ev(`document.querySelector('[data-mic=f_Y11a_work]').classList.contains('on') && document.querySelector('[data-mic=f_Y11a_work]').click(); true`);
+await step(`document.getElementById('say').click()`, 1200);
+ok((await ev(`SAID.join('|')`)).includes("When you are 30, what work"), "Listen reads the question and its example");
+await step(`document.querySelector('[data-mic]').click()`, 2500);
+ok(await ev(`!document.getElementById('m_f_Y11a_work').hidden`) === true, "mic shows a status or error (no real mic here)");
+await ev(`document.querySelector('.mic.listening')?.click(); true`);
 
-// Section 2: follow-ups
-await ev(`T.txt('Y11a_work','Teacher'); T.txt('Y11b_life','In my own house in Gaya near my parents'); T.pick('Y12_sure','quite'); T.txt('Y12_reason','Yes'); T.txt('Y13_skills','Spoken English and typing'); T.next(); true`);
-ok(await ev(`T.title()`) === "Your future", "weak answers keep you on the section");
-ok(await ev(`T.probeShown('Y11a_work')`) === true, "follow-up shown for 'Teacher' (too short)");
-ok(await ev(`T.probeShown('Y12_reason')`) === true, "follow-up shown for 'Yes' (non-answer)");
-ok(await ev(`T.probeShown('Y11b_life')`) === false, "no follow-up for a good answer");
-// Language switch keeps answers and follow-ups
-await ev(`document.querySelector('[data-lang=hi]').click(); true`);
-ok(await ev(`T.title()`) === "आपका भविष्य", "Hindi switch re-renders the section");
-ok(await ev(`document.getElementById('f_Y11a_work').value`) === "Teacher", "answer kept after language switch");
-ok(await ev(`T.probeShown('Y11a_work')`) === true, "follow-up kept after language switch");
-ok(await ev(`!!document.querySelector('[data-say=Y11a_work][data-probe="1"]')`) === true, "follow-up has its own listen button");
-await ev(`T.probe('Y11a_work','Science teacher in a government school in Patna'); T.next(); true`);
-ok(await ev(`T.title()`) === "सीखना और सहारा", "second Next moves on (follow-up asked once)");
-
-// Section 3: conditional follow-up questions + safeguarding
-await ev(`T.pick('Y14_now','notyet'); true`);
-ok(await ev(`T.shown('Y14_stop') && !T.shown('Y14_where')`) === true, "'Not yet' shows 'what is stopping you'");
-await ev(`T.txt('Y14_stop','No coaching centre near my village'); T.txt('Y15_helped','My senior showed me interview preparation'); T.txt('Y16_onething','Career counselling in Class 10'); T.txt('Y17_asked','No one'); T.txt('Y18_mydo','Sometimes I want to die'); true`);
+// Follow-up + language switches
+await step(`T.txt('Teacher'); T.next()`);
+ok(await ev(`T.q()`) === "Y11a_work" && await ev(`T.fu()`) === true, "follow-up appears for 'Teacher' (too short)");
+await step(`document.querySelector('.toplangs [data-lang=hi]').click()`);
+ok((await ev(`T.text()`)).includes("30 साल"), "Hindi switch shows the question in Hindi");
+ok(await ev(`T.fu()`) === true && await ev(`document.getElementById('f_Y11a_work').value`) === "Teacher", "answer and follow-up kept after switch");
+await step(`document.querySelector('.toplangs [data-lang=mr]').click()`);
+ok((await ev(`T.text()`)).includes("३० वर्षांचे"), "Marathi switch shows the question in Marathi");
+await step(`document.querySelector('.toplangs [data-lang=hi]').click()`);
+await step(`T.probe('Science teacher in a government school in Patna'); T.next()`);
+ok(await ev(`T.q()`) === "Y11b_life", "second Next moves on (follow-up asked once)");
+await step(`T.txt('In my own house in Gaya near my parents'); T.next()`);
+ok(await ev(`T.q()`) === "Y12_sure" && await ev(`T.fu()`) === false, "good answer: no follow-up");
+await step(`T.chip('quite')`, 700);
+await step(`T.txt('Yes'); T.next()`);
+ok(await ev(`T.fu()`) === true, "follow-up appears for 'Yes'");
+await step(`T.next()`);
+ok(await ev(`T.q()`) === "Y13_skills", "follow-up can be left blank");
+await step(`T.txt('Spoken English and typing'); T.next()`);
+await step(`T.chip('notyet')`, 700);
+ok(await ev(`T.q()`) === "Y14_stop", "'Not yet' leads to 'what is stopping you'");
+await step(`T.txt('No coaching centre near my village'); T.next()`);
+await step(`T.txt('My senior showed me interview preparation'); T.next()`);
+await step(`T.txt('Career counselling in Class 10'); T.next()`);
+await step(`T.txt('No one'); T.next()`);
+ok(await ev(`T.q()`) === "Y18_mydo", "'No one' accepted without a follow-up");
+await step(`T.txt('Sometimes I want to die')`);
 ok(await ev(`document.getElementById('supportSlot').textContent.includes('14416')`) === true, "support line (Tele-MANAS) appears for a distress phrase");
-await ev(`T.next(); true`);
-await sleep(800);
-ok(await ev(`!document.getElementById('p_Y17_asked')`) === true, "'No one' accepted without a follow-up (form submitted)");
-ok((await ev(`document.querySelector('h1').textContent`)).includes("धन्यवाद"), "thank-you page shown");
+await step(`T.next()`, 900);
+ok(await ev(`!!document.querySelector('.thanks')`) === true, "thank-you screen shown");
 
 const rec = JSON.parse(await ev(`localStorage.getItem('lf.responses.v1')`))[0];
 const v = c => rec.values[rec.cols.indexOf(c)];
 ok(rec && rec.tool === "youth" && /^LF-\d{8}-/.test(rec.sid), "record saved with a session id");
-ok(v("Y6_class") === "Class 11–12" && v("Y9_disability") === "No", "choices saved as English labels");
+ok(v("Y6_class") === "Class 11–12" && v("Y9_disability") === "No" && v("Y5") === "In school", "choices saved as English labels");
 ok(v("Y11a_work_probe_reason") === "short" && v("Y11a_work_probe_answer").startsWith("Science teacher"), "follow-up reason and answer saved");
-ok(v("Y12_reason_probe_reason") === "nonanswer" && v("Y12_reason_probe_answer") === "", "unanswered follow-up saved as blank");
-ok(v("Y14_where") === "" && v("Y14_stop").startsWith("No coaching"), "hidden question saved blank");
+ok(v("Y12_reason_probe_reason") === "nonanswer" && v("Y12_reason_probe_answer") === "", "blank follow-up saved as blank");
+ok(v("Y14_where") === "" && v("Y14_stop").startsWith("No coaching"), "skipped question saved blank");
 ok(v("safeguard_flag") === "YES" && v("language") === "hi", "safeguard flag and language saved");
-ok(await ev(`localStorage.getItem('lf.draft.v1')`) === null, "draft cleared after submit");
 ok(rec.cols.includes("Y11a_work_spoken") && v("Y11a_work_spoken") === "", "spoken column saved (blank when typed)");
+ok(await ev(`localStorage.getItem('lf.draft.v2')`) === null, "draft cleared after submit");
 
 ws.close(); p.kill();
 console.log(fails ? `${fails} FAILED` : "all passed");

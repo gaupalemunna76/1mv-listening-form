@@ -49,6 +49,15 @@ check("P13_lastweek", "Nothing this week", null);
 check("P10_work", "Whatever my child chooses", null);
 check("P10_work", "jo bachcha chahe", null);
 
+// Marathi
+check("Y12_reason", "हो", "nonanswer");
+check("P15_onething", "माहीत नाही", "nonanswer");
+check("Y11b_life", "आनंदी आयुष्य", "vague");
+check("Y13_skills", "इंग्रजी बोलणे आणि टायपिंग", null);
+check("Y17_asked", "कोणालाच नाही", null);
+check("P10_work", "मूल स्वतः ठरवेल ते", null);
+assert.equal(isDistress("मला जगायचं नाही"), true); n++;
+
 // Distress detection (pilot had "Aatmhatya" in a Mitra parent answer)
 assert.equal(isDistress("Aatmhatya"), true); n++;
 assert.equal(isDistress("Sometimes I want to die"), true); n++;
@@ -57,10 +66,12 @@ assert.equal(isDistress("I want a peaceful life"), false); n++;
 
 // Every short/para question has a follow-up in English and Hindi; every text has en + hi
 for (const tool of Object.values(TOOLS)) for (const s of tool.sections) for (const q of s.items) {
-  assert.ok(q.label.en && q.label.hi, `${q.id} label`);
-  if (q.type === "short" && !q.id.match(/district/)) assert.ok(q.probe?.ask?.en && q.probe?.ask?.hi, `${q.id} probe`);
-  if (q.hint) assert.ok(q.hint.en && q.hint.hi, `${q.id} hint`);
-  for (const o of q.options || []) assert.ok(o.en && o.hi, `${q.id} option ${o.v}`);
+  for (const lang of ["en", "hi", "mr"]) {
+    assert.ok(q.label[lang], `${q.id} label ${lang}`);
+    if (q.type === "short" && !q.id.match(/district/)) assert.ok(q.probe?.ask?.[lang], `${q.id} probe ${lang}`);
+    if (q.hint) assert.ok(q.hint[lang], `${q.id} hint ${lang}`);
+    for (const o of q.options || []) assert.ok(o[lang], `${q.id} option ${o.v} ${lang}`);
+  }
   n++;
 }
 console.log(`ok - ${n} checks passed`);
