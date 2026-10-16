@@ -45,7 +45,14 @@ await ev(`
     err() { return document.getElementById('err')?.textContent || ''; },
     text() { return document.getElementById('qtext')?.textContent || ''; },
   }; true`);
-const step = async (expr, wait = 150) => { await ev(expr + "; true"); await sleep(wait); };
+const step = async (expr, wait = 150) => {
+  const before = await ev(`T.q()`);
+  await ev(expr + "; true");
+  if (wait < 900) return sleep(wait);
+  // A choice tap moves on by itself: wait (up to 4 s) until the next question is on screen.
+  for (let i = 0; i < 40 && (await ev(`T.q()`)) === before; i++) await sleep(100);
+  await sleep(100);
+};
 
 // Start screen
 ok(await ev(`document.querySelector('[data-form=youth]').getAttribute('aria-pressed')`) === "true", "?t=youth preselects the Youth form");
@@ -107,7 +114,8 @@ await step(`T.next()`);
 ok(await ev(`T.q()`) === "Y13_skills", "follow-up can be left blank");
 await step(`T.txt('Spoken English and typing'); T.next()`);
 await step(`T.chip('notyet')`, 950);
-ok(await ev(`T.q()`) === "Y14_stop", "'Not yet' leads to 'what is stopping you'");
+const atQ = await ev(`T.q()`);
+ok(atQ === "Y14_stop", "'Not yet' leads to 'what is stopping you'" + (atQ === "Y14_stop" ? "" : ` (on ${atQ})`));
 await step(`T.txt('No coaching centre near my village'); T.next()`);
 await step(`T.txt('My senior showed me interview preparation'); T.next()`);
 await step(`T.txt('Career counselling in Class 10'); T.next()`);
