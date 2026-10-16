@@ -1,15 +1,15 @@
 // 1MV Listening Form — one question per screen (Youth Voice look), with follow-ups, conditions,
 // optional 🔊 listen and 🎤 speak, three languages, offline save and Google Sheet sync.
-import { TOOLS } from "./questions.js?v=20261016-2312";
-import { LANGS, UI, t } from "./i18n.js?v=20261016-2312";
-import { assess, isDistress } from "./probe.js?v=20261016-2312";
-import { SHEET_URL as CONFIG_SHEET_URL } from "./config.js?v=20261016-2312";
-import { canSpeak, canListen, loadVoices, pickVoice, speak, stopSpeaking, unlockSpeech, listen, isMobile } from "./speech.js?v=20261016-2312";
+import { TOOLS } from "./questions.js?v=20261016-2322";
+import { LANGS, UI, t } from "./i18n.js?v=20261016-2322";
+import { assess, isDistress } from "./probe.js?v=20261016-2322";
+import { SHEET_URL as CONFIG_SHEET_URL } from "./config.js?v=20261016-2322";
+import { canSpeak, canListen, loadVoices, pickVoice, speak, stopSpeaking, unlockSpeech, listen, isMobile } from "./speech.js?v=20261016-2322";
 
 const params0 = new URLSearchParams(location.search);
 // Local test copies (localhost) never send to the real Sheet unless ?sync is added.
 const SHEET_URL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && !params0.has("sync") ? "" : CONFIG_SHEET_URL;
-const VERSION = "20261016-2312";
+const VERSION = "20261016-2322";
 const DRAFT = "lf.draft.v2";
 const STORE = "lf.responses.v1";
 const TOOL_NAME = "1MV Listening Form";
@@ -345,13 +345,15 @@ app.addEventListener("input", e => { if (e.target.classList?.contains("grow")) a
 app.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && e.target.classList?.contains("grow")) { e.preventDefault(); onNext(); } });
 
 // ---------------- records ----------------
-// One column per question. A follow-up answer joins its question's cell after " ➜ ", and "Other" text joins
-// its dropdown cell. Which follow-ups were asked, and which answers were spoken, go in two summary columns.
-// (Questions with two real parts, e.g. "how sure" + "why", are already two questions, so two columns.)
-const FU = " ➜ ";
+// Column names are the English question text, so the Sheet reads like the form.
+// A question that can get a follow-up has a second column "Fups: <question>" with the follow-up answer.
+// "Fups: asked & why" lists which follow-ups were asked and why; "Spoken answers" lists mic answers.
+// (session_id must stay the first column: the Sheet script uses it to find and update a response.)
+const META = ["session_id", "Form", "Language", "Source", "Submitted at", "Time taken (sec)", "Safety flag", "Fups: asked & why", "Spoken answers"];
+const head = q => q.label.en;
+const fupHead = q => "Fups: " + q.label.en;
 function columns(tool) {
-  return ["session_id", "tool", "language", "source", "submitted_at", "duration_sec", "safeguard_flag", "followups", "spoken",
-    ...allItems(tool).map(q => q.id)];
+  return [...META, ...allItems(tool).flatMap(q => q.probe ? [head(q), fupHead(q)] : [head(q)])];
 }
 
 function valueOf(q) {
@@ -359,21 +361,23 @@ function valueOf(q) {
   const label = code => code === "__other" ? "Other: " + String(S.A[q.id + "_other"] || "").trim() : (q.options.find(o => o.v === code)?.en ?? code);
   if (q.type === "multi") return (v || []).map(label).join("; ");
   if (q.type === "choice" || q.type === "dropdown") return v ? label(v) : "";
-  const ans = String(v ?? "").trim();
-  const extra = String(S.P[q.id]?.answer || "").trim();
-  return extra ? (ans ? ans + FU + extra : FU.trim() + " " + extra) : ans;
+  return String(v ?? "").trim();
 }
 
 function buildRecord() {
   const now = new Date();
   const shown = allItems(S.tool).filter(visible);
   const row = {
-    session_id: S.sid, tool: S.tool.key, language: S.lang, source: S.source, submitted_at: now.toISOString(),
-    duration_sec: Math.round((now - new Date(S.started)) / 1000), safeguard_flag: S.flag ? "YES" : "",
-    followups: shown.filter(q => S.P[q.id]).map(q => `${q.id}:${S.P[q.id].reason}`).join("; "),
-    spoken: shown.filter(q => S.V[q.id]).map(q => S.V[q.id] === "answer" ? q.id : `${q.id}(${S.V[q.id]})`).join("; "),
+    session_id: S.sid, "Form": S.tool.key, "Language": S.lang, "Source": S.source, "Submitted at": now.toISOString(),
+    "Time taken (sec)": Math.round((now - new Date(S.started)) / 1000), "Safety flag": S.flag ? "YES" : "",
+    "Fups: asked & why": shown.filter(q => S.P[q.id]).map(q => `${q.id}: ${S.P[q.id].reason}`).join("; "),
+    "Spoken answers": shown.filter(q => S.V[q.id]).map(q => S.V[q.id] === "answer" ? q.id : `${q.id} (${S.V[q.id]})`).join("; "),
   };
-  for (const q of allItems(S.tool)) row[q.id] = visible(q) ? valueOf(q) : "";
+  for (const q of allItems(S.tool)) {
+    const show = visible(q);
+    row[head(q)] = show ? valueOf(q) : "";
+    if (q.probe) row[fupHead(q)] = show && S.P[q.id] ? String(S.P[q.id].answer || "").trim() : "";
+  }
   const cols = columns(S.tool);
   return { sid: S.sid, tool: S.tool.key, cols, values: cols.map(c => row[c] ?? ""), sent: false, saved: now.toISOString() };
 }
