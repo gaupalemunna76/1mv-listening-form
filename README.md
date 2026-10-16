@@ -50,7 +50,7 @@ The Hindi and Marathi text are working drafts (Marathi follows the team's "Natur
 node tests/probe.test.mjs                       # follow-up rules incl. Marathi (94 checks)
 node tests/transcript.test.mjs && node tests/phone_speech.test.mjs   # speech-to-text clean-up (16 checks)
 python -m http.server 8790                      # in another window, then:
-node tests/e2e_edge.mjs                         # full Youth form in headless Edge (36 checks)
+node tests/e2e_edge.mjs                         # full Youth form in headless Edge (38 checks)
 python set_version.py                           # stamp a new version so phones get the new files
 git add -A && git commit -m "…" && git push     # GitHub Pages updates in about a minute
 ```
