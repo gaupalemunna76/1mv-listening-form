@@ -37,7 +37,7 @@ Questions, examples, follow-ups and conditions are all in `questions.js`. Follow
 Each form gets its own tab (Youth, Parents, General Public), one row per response. Every short answer has three extra columns: `<id>_probe_reason` (why a follow-up was asked), `<id>_probe_answer` (what they added) and `<id>_spoken` (answer / followup / both, if the mic was used). Answers are stored as plain text, never as formulas.
 
 ## Add a language
-1. Add it to `LANGS` in `i18n.js`, for example `{ code: "mr", name: "मराठी" }`.
+1. Add it to `LANGS` in `i18n.js`, for example `{ code: "mr", name: "मराठी", speech: "mr-IN" }` (`speech` is the language the 🔊 and 🎤 buttons use).
 2. Add the same code next to `en`/`hi` in every entry of `UI` (`i18n.js`), `questions.js` and `states.js`. Anything not translated shows in English.
 3. Add common non-answers in that language to `NON_ANSWERS` in `probe.js` (e.g. "हो", "माहीत नाही").
 
