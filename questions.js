@@ -15,7 +15,7 @@
 //             The follow-up is asked once, when the answer is empty, a non-answer ("yes", "ok",
 //             "pata nahi"), shorter than minWords, or only vague words.
 
-import { STATES } from "./states.js?v=20261016-2113";
+import { STATES } from "./states.js?v=20261016-2127";
 
 const L = (en, hi) => ({ en, hi });
 const opt = (v, en, hi) => ({ v, en, hi });

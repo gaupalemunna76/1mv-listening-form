@@ -62,6 +62,19 @@ ok(await ev(`[...document.querySelectorAll('input[name=f_Y9_disability]:checked'
 await ev(`T.next(); true`);
 ok(await ev(`T.title()`) === "Your future", "section 2 opens");
 
+// Optional speech: buttons present, nothing spoken until tapped, tapping reads the question
+await ev(`window.SAID = []; speechSynthesis.speak = u => { if (u.text.trim()) SAID.push(u.text); setTimeout(() => u.onend && u.onend(), 50); }; true`);
+ok(await ev(`document.querySelectorAll('[data-say]').length`) >= 5, "every question has a listen button");
+ok(await ev(`document.querySelectorAll('[data-mic]').length`) >= 4, "every short answer has a mic button");
+ok(await ev(`SAID.length`) === 0, "nothing is read aloud by default");
+await ev(`document.querySelector('[data-say=Y11a_work]').click(); true`);
+await sleep(1200);
+ok((await ev(`SAID.join('|')`)).includes("When you are 30, what work"), "listen button reads the question and its example");
+await ev(`document.querySelector('[data-mic=f_Y11a_work]').click(); true`);
+await sleep(2500);
+ok(await ev(`!document.getElementById('m_f_Y11a_work').hidden`) === true, "mic shows a status or error message (no real mic in headless)");
+await ev(`document.querySelector('[data-mic=f_Y11a_work]').classList.contains('on') && document.querySelector('[data-mic=f_Y11a_work]').click(); true`);
+
 // Section 2: follow-ups
 await ev(`T.txt('Y11a_work','Teacher'); T.txt('Y11b_life','In my own house in Gaya near my parents'); T.pick('Y12_sure','quite'); T.txt('Y12_reason','Yes'); T.txt('Y13_skills','Spoken English and typing'); T.next(); true`);
 ok(await ev(`T.title()`) === "Your future", "weak answers keep you on the section");
@@ -73,6 +86,7 @@ await ev(`document.querySelector('[data-lang=hi]').click(); true`);
 ok(await ev(`T.title()`) === "आपका भविष्य", "Hindi switch re-renders the section");
 ok(await ev(`document.getElementById('f_Y11a_work').value`) === "Teacher", "answer kept after language switch");
 ok(await ev(`T.probeShown('Y11a_work')`) === true, "follow-up kept after language switch");
+ok(await ev(`!!document.querySelector('[data-say=Y11a_work][data-probe="1"]')`) === true, "follow-up has its own listen button");
 await ev(`T.probe('Y11a_work','Science teacher in a government school in Patna'); T.next(); true`);
 ok(await ev(`T.title()`) === "सीखना और सहारा", "second Next moves on (follow-up asked once)");
 
@@ -95,6 +109,7 @@ ok(v("Y12_reason_probe_reason") === "nonanswer" && v("Y12_reason_probe_answer") 
 ok(v("Y14_where") === "" && v("Y14_stop").startsWith("No coaching"), "hidden question saved blank");
 ok(v("safeguard_flag") === "YES" && v("language") === "hi", "safeguard flag and language saved");
 ok(await ev(`localStorage.getItem('lf.draft.v1')`) === null, "draft cleared after submit");
+ok(rec.cols.includes("Y11a_work_spoken") && v("Y11a_work_spoken") === "", "spoken column saved (blank when typed)");
 
 ws.close(); p.kill();
 console.log(fails ? `${fails} FAILED` : "all passed");

@@ -69,3 +69,20 @@ table.admin { border-collapse: collapse; width: 100%; font-size: .9rem; }
 table.admin th, table.admin td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 [hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .progress > i { transition: none; } }
+
+/* Optional speech buttons: 🔊 read the question, 🎤 speak the answer */
+.q-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.q-top > :first-child { flex: 1; min-width: 0; }
+.icon { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--accent); cursor: pointer; padding: 0; }
+.icon svg { width: 22px; height: 22px; }
+.icon:hover { border-color: var(--accent); }
+.icon:focus-visible { outline: 3px solid var(--probe-line); outline-offset: 2px; }
+.say.on { background: var(--accent-soft); border-color: var(--accent); }
+.mic.on { background: var(--error); border-color: var(--error); color: #fff; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(179, 38, 30, .35); } 50% { box-shadow: 0 0 0 8px rgba(179, 38, 30, 0); } }
+@media (prefers-reduced-motion: reduce) { .mic.on { animation: none; } }
+.field-mic { display: flex; align-items: flex-end; gap: 10px; }
+.field-mic > :first-child { flex: 1; min-width: 0; }
+textarea.grow { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 8px 2px; min-height: 0; resize: none; overflow: hidden; line-height: 1.5; }
+textarea.grow:focus { border-color: var(--accent); box-shadow: 0 1px 0 var(--accent); }
+.probe textarea.grow { background: transparent; }

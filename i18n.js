@@ -1,8 +1,8 @@
 // Languages and screen text. To add a language: add it to LANGS, then add its code to every
 // entry in UI below and in questions.js. Missing text falls back to English.
 export const LANGS = [
-  { code: "en", name: "English" },
-  { code: "hi", name: "हिन्दी" },
+  { code: "en", name: "English", speech: "en-IN" },
+  { code: "hi", name: "हिन्दी", speech: "hi-IN" },
 ];
 
 export const UI = {
@@ -45,6 +45,16 @@ export const UI = {
   resume: { en: "You have an unfinished form on this device.", hi: "इस डिवाइस पर आपका एक अधूरा फ़ॉर्म है।" },
   resumeYes: { en: "Continue it", hi: "उसे पूरा करें" },
   resumeNo: { en: "Start fresh", hi: "नया शुरू करें" },
+  listen: { en: "Listen to this question", hi: "यह सवाल सुनें" },
+  micStart: { en: "Speak your answer", hi: "बोलकर जवाब दें" },
+  micStop: { en: "Listening… tap to stop", hi: "सुन रहे हैं… रोकने के लिए दबाएँ" },
+  micAgain: { en: "Tap the mic again to add more. You can also edit the text.", hi: "और जोड़ने के लिए माइक फिर से दबाएँ। आप लिखा हुआ बदल भी सकते हैं।" },
+  micDenied: { en: "The microphone is blocked. Allow it in your browser settings, or type your answer.", hi: "माइक बंद है। ब्राउज़र की सेटिंग में इसकी अनुमति दें, या जवाब लिखें।" },
+  micNoNet: { en: "Speaking needs internet. Please type, or try again.", hi: "बोलकर जवाब देने के लिए इंटरनेट चाहिए। कृपया लिखें, या फिर से कोशिश करें।" },
+  micNoMic: { en: "No microphone found. Please type your answer.", hi: "माइक नहीं मिला। कृपया जवाब लिखें।" },
+  micNothing: { en: "We did not hear anything. Tap the mic and speak, or type.", hi: "हमें कुछ सुनाई नहीं दिया। माइक दबाकर बोलें, या लिखें।" },
+  noVoice: { en: "This device has no voice for this language, so it cannot read aloud.", hi: "इस डिवाइस में इस भाषा की आवाज़ नहीं है, इसलिए पढ़कर नहीं सुना सकते।" },
+  voiceHelp: { en: "Tip: tap 🔊 to hear a question, and 🎤 to speak your answer instead of typing.", hi: "सुझाव: सवाल सुनने के लिए 🔊 दबाएँ, और लिखने के बजाय बोलकर जवाब देने के लिए 🎤 दबाएँ।" },
   hindiDraft: { en: "", hi: "हिंदी अनुवाद अभी समीक्षा में है।" },
 };
 

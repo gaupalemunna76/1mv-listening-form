@@ -8,7 +8,10 @@ A Google-Forms-style web form for the **1 Million Voices** listening tools (Shor
 - **Safeguarding.** If an answer suggests self-harm, the form shows the free Tele-MANAS helpline (14416) and flags the response.
 - **Works offline.** Answers are saved on the device as people type, so an unfinished form can be resumed. Finished forms are sent to the Google Sheet when the device is online.
 
-No voice. Text only.
+- **Optional voice, never on by default:**
+  - 🔊 next to every question (and every follow-up) reads it aloud, only when tapped. Uses the browser's built-in voices, which every modern browser has. Hindi needs a Hindi voice on the device; if there is none, the form says so.
+  - 🎤 next to every short-answer box turns speech into text in that box. People can talk for as long as they like (up to 3 minutes per tap; tap again to add more) and then edit the text. Uses the browser's free speech recognition: Chrome, Edge, Safari and Android Chrome (needs internet). In Firefox the mic button doesn't show, and people type.
+  - Only text is stored, never audio. The `<id>_spoken` column says whether the answer, the follow-up or both were spoken.
 
 ## Links
 - **Live form:** https://gaupalemunna76.github.io/1mv-listening-form/
@@ -31,7 +34,7 @@ Questions, examples, follow-ups and conditions are all in `questions.js`. Follow
 3. **Deploy → New deployment →** gear icon **→ Web app.** *Execute as:* **Me**. *Who has access:* **Anyone**. **Deploy**, allow access, copy the **Web app URL** (ends in `/exec`).
 4. Put the URL in `config.js` (`SHEET_URL = "…/exec"`), run `python set_version.py`, commit and push.
 
-Each form gets its own tab (Youth, Parents, General Public), one row per response. Every short answer has two extra columns: `<id>_probe_reason` (why a follow-up was asked) and `<id>_probe_answer` (what they added). Answers are stored as plain text, never as formulas.
+Each form gets its own tab (Youth, Parents, General Public), one row per response. Every short answer has three extra columns: `<id>_probe_reason` (why a follow-up was asked), `<id>_probe_answer` (what they added) and `<id>_spoken` (answer / followup / both, if the mic was used). Answers are stored as plain text, never as formulas.
 
 ## Add a language
 1. Add it to `LANGS` in `i18n.js`, for example `{ code: "mr", name: "मराठी" }`.
@@ -43,8 +46,9 @@ The Hindi text is a working draft. Have a native speaker review it before field 
 ## Change and publish
 ```
 node tests/probe.test.mjs                       # follow-up rules (87 checks)
+node tests/transcript.test.mjs && node tests/phone_speech.test.mjs   # speech-to-text clean-up (16 checks)
 python -m http.server 8790                      # in another window, then:
-node tests/e2e_edge.mjs                         # full Youth form in headless Edge (26 checks)
+node tests/e2e_edge.mjs                         # full Youth form in headless Edge (33 checks)
 python set_version.py                           # stamp a new version so phones get the new files
 git add -A && git commit -m "…" && git push     # GitHub Pages updates in about a minute
 ```
