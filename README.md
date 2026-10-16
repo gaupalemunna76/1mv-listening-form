@@ -32,9 +32,9 @@ Questions, examples, follow-ups and conditions are all in `questions.js`. Follow
 1. Create a Google Sheet, for example "1MV Listening Form responses".
 2. **Extensions → Apps Script.** Delete what is there, paste all of `google_sheet/Code.gs`, press **Save**.
 3. **Deploy → New deployment →** gear icon **→ Web app.** *Execute as:* **Me**. *Who has access:* **Anyone**. **Deploy**, allow access, copy the **Web app URL** (ends in `/exec`).
-4. Put the URL in `config.js` (`SHEET_URL = "…/exec"`), run `python set_version.py`, commit and push.
+4. **Connected 16 Oct 2026** (Sheet "1MV Listening Form – Responses", owned by Munna). To change it: put the URL in `config.js` (`SHEET_URL = "…/exec"`), run `python set_version.py`, commit and push.
 
-Each form gets its own tab (Youth, Parents, General Public), one row per response. Every short answer has three extra columns: `<id>_probe_reason` (why a follow-up was asked), `<id>_probe_answer` (what they added) and `<id>_spoken` (answer / followup / both, if the mic was used). Answers are stored as plain text, never as formulas.
+Each form gets its own tab (Youth, Parents, General Public), one row per response. Every short answer has three extra columns: `<id>_probe_reason` (why a follow-up was asked), `<id>_probe_answer` (what they added) and `<id>_spoken` (answer / followup / both, if the mic was used). Answers are stored as plain text, never as formulas. Local test copies (localhost) never send to the Sheet unless `?sync` is added, so tests cannot add fake rows.
 
 ## Add a language
 1. Add it to `LANGS` in `i18n.js`, for example `{ code: "mr", name: "मराठी", speech: "mr-IN" }` (`speech` is the language the 🔊 and 🎤 buttons use).
