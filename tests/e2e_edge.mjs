@@ -122,11 +122,12 @@ const rec = JSON.parse(await ev(`localStorage.getItem('lf.responses.v1')`))[0];
 const v = c => rec.values[rec.cols.indexOf(c)];
 ok(rec && rec.tool === "youth" && /^LF-\d{8}-/.test(rec.sid), "record saved with a session id");
 ok(v("Y6_class") === "Class 11–12" && v("Y9_disability") === "No" && v("Y5") === "In school", "choices saved as English labels");
-ok(v("Y11a_work_probe_reason") === "short" && v("Y11a_work_probe_answer").startsWith("Science teacher"), "follow-up reason and answer saved");
-ok(v("Y12_reason_probe_reason") === "nonanswer" && v("Y12_reason_probe_answer") === "", "blank follow-up saved as blank");
+ok(rec.cols.length === 9 + 21, "one column per question plus 9 summary columns (30 for Youth)");
+ok(v("Y11a_work") === "Teacher ➜ Science teacher in a government school in Patna", "follow-up answer joins the same cell after ➜");
+ok(v("Y12_reason") === "Yes", "blank follow-up leaves the answer as it was");
+ok(v("followups") === "Y11a_work:short; Y12_reason:nonanswer", "followups column lists where and why a follow-up was asked");
 ok(v("Y14_where") === "" && v("Y14_stop").startsWith("No coaching"), "skipped question saved blank");
-ok(v("safeguard_flag") === "YES" && v("language") === "hi", "safeguard flag and language saved");
-ok(rec.cols.includes("Y11a_work_spoken") && v("Y11a_work_spoken") === "", "spoken column saved (blank when typed)");
+ok(v("safeguard_flag") === "YES" && v("language") === "hi" && v("spoken") === "", "safeguard flag, language and spoken saved");
 ok(await ev(`localStorage.getItem('lf.draft.v2')`) === null, "draft cleared after submit");
 
 ws.close(); p.kill();

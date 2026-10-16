@@ -1,15 +1,15 @@
 // 1MV Listening Form — one question per screen (Youth Voice look), with follow-ups, conditions,
 // optional 🔊 listen and 🎤 speak, three languages, offline save and Google Sheet sync.
-import { TOOLS } from "./questions.js?v=20261016-2303";
-import { LANGS, UI, t } from "./i18n.js?v=20261016-2303";
-import { assess, isDistress } from "./probe.js?v=20261016-2303";
-import { SHEET_URL as CONFIG_SHEET_URL } from "./config.js?v=20261016-2303";
-import { canSpeak, canListen, loadVoices, pickVoice, speak, stopSpeaking, unlockSpeech, listen, isMobile } from "./speech.js?v=20261016-2303";
+import { TOOLS } from "./questions.js?v=20261016-2312";
+import { LANGS, UI, t } from "./i18n.js?v=20261016-2312";
+import { assess, isDistress } from "./probe.js?v=20261016-2312";
+import { SHEET_URL as CONFIG_SHEET_URL } from "./config.js?v=20261016-2312";
+import { canSpeak, canListen, loadVoices, pickVoice, speak, stopSpeaking, unlockSpeech, listen, isMobile } from "./speech.js?v=20261016-2312";
 
 const params0 = new URLSearchParams(location.search);
 // Local test copies (localhost) never send to the real Sheet unless ?sync is added.
 const SHEET_URL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && !params0.has("sync") ? "" : CONFIG_SHEET_URL;
-const VERSION = "20261016-2303";
+const VERSION = "20261016-2312";
 const DRAFT = "lf.draft.v2";
 const STORE = "lf.responses.v1";
 const TOOL_NAME = "1MV Listening Form";
@@ -345,42 +345,35 @@ app.addEventListener("input", e => { if (e.target.classList?.contains("grow")) a
 app.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && e.target.classList?.contains("grow")) { e.preventDefault(); onNext(); } });
 
 // ---------------- records ----------------
+// One column per question. A follow-up answer joins its question's cell after " ➜ ", and "Other" text joins
+// its dropdown cell. Which follow-ups were asked, and which answers were spoken, go in two summary columns.
+// (Questions with two real parts, e.g. "how sure" + "why", are already two questions, so two columns.)
+const FU = " ➜ ";
 function columns(tool) {
-  const cols = ["session_id", "tool", "language", "source", "started_at", "submitted_at", "duration_sec", "app_version", "safeguard_flag"];
-  for (const q of allItems(tool)) {
-    cols.push(q.id);
-    if (q.other) cols.push(q.id + "_other");
-    if (q.probe) cols.push(q.id + "_probe_reason", q.id + "_probe_answer");
-    if (textTypes.has(q.type)) cols.push(q.id + "_spoken");
-  }
-  return cols;
+  return ["session_id", "tool", "language", "source", "submitted_at", "duration_sec", "safeguard_flag", "followups", "spoken",
+    ...allItems(tool).map(q => q.id)];
 }
 
 function valueOf(q) {
   const v = S.A[q.id];
-  const label = code => code === "__other" ? "Other" : (q.options.find(o => o.v === code)?.en ?? code);
+  const label = code => code === "__other" ? "Other: " + String(S.A[q.id + "_other"] || "").trim() : (q.options.find(o => o.v === code)?.en ?? code);
   if (q.type === "multi") return (v || []).map(label).join("; ");
   if (q.type === "choice" || q.type === "dropdown") return v ? label(v) : "";
-  return String(v ?? "").trim();
+  const ans = String(v ?? "").trim();
+  const extra = String(S.P[q.id]?.answer || "").trim();
+  return extra ? (ans ? ans + FU + extra : FU.trim() + " " + extra) : ans;
 }
 
 function buildRecord() {
   const now = new Date();
+  const shown = allItems(S.tool).filter(visible);
   const row = {
-    session_id: S.sid, tool: S.tool.key, language: S.lang, source: S.source, started_at: S.started, submitted_at: now.toISOString(),
-    duration_sec: Math.round((now - new Date(S.started)) / 1000), app_version: VERSION, safeguard_flag: S.flag ? "YES" : "",
+    session_id: S.sid, tool: S.tool.key, language: S.lang, source: S.source, submitted_at: now.toISOString(),
+    duration_sec: Math.round((now - new Date(S.started)) / 1000), safeguard_flag: S.flag ? "YES" : "",
+    followups: shown.filter(q => S.P[q.id]).map(q => `${q.id}:${S.P[q.id].reason}`).join("; "),
+    spoken: shown.filter(q => S.V[q.id]).map(q => S.V[q.id] === "answer" ? q.id : `${q.id}(${S.V[q.id]})`).join("; "),
   };
-  for (const q of allItems(S.tool)) {
-    const show = visible(q);
-    row[q.id] = show ? valueOf(q) : "";
-    if (q.other) row[q.id + "_other"] = show ? String(S.A[q.id + "_other"] || "").trim() : "";
-    if (q.probe) {
-      const p = show ? S.P[q.id] : null;
-      row[q.id + "_probe_reason"] = p ? p.reason : "";
-      row[q.id + "_probe_answer"] = p ? String(p.answer || "").trim() : "";
-    }
-    if (textTypes.has(q.type)) row[q.id + "_spoken"] = show ? (S.V[q.id] || "") : "";
-  }
+  for (const q of allItems(S.tool)) row[q.id] = visible(q) ? valueOf(q) : "";
   const cols = columns(S.tool);
   return { sid: S.sid, tool: S.tool.key, cols, values: cols.map(c => row[c] ?? ""), sent: false, saved: now.toISOString() };
 }
