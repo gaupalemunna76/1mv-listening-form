@@ -57,5 +57,5 @@ python set_version.py && git add -A && git commit && git push        # publish (
 1. Native-speaker review of the Hindi and Marathi text (drafts).
 2. Try 🎤 on an Android phone in Hindi and Marathi (headless tests can't use a real mic).
 3. Watch the `Safety flag` column; a person on the team should follow up on YES rows.
-4. Scale: one Sheet holds roughly 250,000 Youth rows (10M-cell limit). Plan a database (e.g. Firestore) before large rollouts.
+4. Scale (see the Features & Scalability report, 17 Oct): plan ~50,000 responses per Sheet (Sheets limit is 20M cells or 100 MB; size is reached first) and ~1,000–2,000 responses an hour (Apps Script: 30 at the same moment, ~1.4–2.5 s per call). Before scaling: confirm saves (read the script reply, retry on failure) and make writes append-only. No-cost path to 1M: Cloudflare Workers + D1.
 5. Optional ideas not built: review-your-answers page, "skip follow-up" button, partner dashboard, more languages.
