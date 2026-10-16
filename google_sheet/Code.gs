@@ -3,9 +3,12 @@
  * Paste into Extensions -> Apps Script of the Google Sheet that should collect responses, then
  * Deploy -> New deployment -> Web app (Execute as: Me, Who has access: Anyone). Copy the /exec URL into config.js.
  * Each response becomes one row on its form's tab (Youth / Parents / General Public). Sending the same response again updates its row.
+ * Locks: responses submitted before LOCK_AFTER are rejected, and a tab's columns never change after it is created.
  */
 const TABS = { youth: "Youth", parent: "Parents", public: "General Public" };
 const MAX_COLS = 300;
+// Lock: responses submitted before this time are rejected (the tabs were created after it).
+const LOCK_AFTER = "2026-10-16T18:12:00Z";
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
@@ -17,6 +20,8 @@ function doPost(e) {
         || data.columns[0] !== "session_id" || !/^LF-\d{8}-[A-Z0-9]{4,10}$/.test(String(data.values[0]))) {
       return text_("rejected");
     }
+    const sub = data.columns.indexOf("Submitted at");
+    if (sub === -1 || String(data.values[sub]) < LOCK_AFTER) return text_("rejected: before lock");
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const name = TABS[data.persona];
     const sh = ss.getSheetByName(name) || ss.insertSheet(name);
@@ -27,11 +32,10 @@ function doPost(e) {
       sh.setFrozenRows(1);
     }
     let headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    // Lock the columns: once a tab exists, a response with any column the tab doesn't have is rejected
+    // (no new columns are ever added). To change questions, rename the old tab and let a new one be created.
     const missing = data.columns.filter(c => headers.indexOf(c) === -1);
-    if (missing.length) {
-      sh.getRange(1, headers.length + 1, 1, missing.length).setValues([missing]);
-      headers = headers.concat(missing);
-    }
+    if (missing.length) return text_("rejected: columns differ");
     const row = headers.map(h => {
       if (h === "received_at") return new Date();
       const i = data.columns.indexOf(h);

@@ -1,15 +1,15 @@
 // 1MV Listening Form — one question per screen (Youth Voice look), with follow-ups, conditions,
 // optional 🔊 listen and 🎤 speak, three languages, offline save and Google Sheet sync.
-import { TOOLS } from "./questions.js?v=20261016-2322";
-import { LANGS, UI, t } from "./i18n.js?v=20261016-2322";
-import { assess, isDistress } from "./probe.js?v=20261016-2322";
-import { SHEET_URL as CONFIG_SHEET_URL } from "./config.js?v=20261016-2322";
-import { canSpeak, canListen, loadVoices, pickVoice, speak, stopSpeaking, unlockSpeech, listen, isMobile } from "./speech.js?v=20261016-2322";
+import { TOOLS } from "./questions.js?v=20261016-2341";
+import { LANGS, UI, t } from "./i18n.js?v=20261016-2341";
+import { assess, isDistress } from "./probe.js?v=20261016-2341";
+import { SHEET_URL as CONFIG_SHEET_URL } from "./config.js?v=20261016-2341";
+import { canSpeak, canListen, loadVoices, pickVoice, speak, stopSpeaking, unlockSpeech, listen, isMobile } from "./speech.js?v=20261016-2341";
 
 const params0 = new URLSearchParams(location.search);
 // Local test copies (localhost) never send to the real Sheet unless ?sync is added.
 const SHEET_URL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && !params0.has("sync") ? "" : CONFIG_SHEET_URL;
-const VERSION = "20261016-2322";
+const VERSION = "20261016-2341";
 const DRAFT = "lf.draft.v2";
 const STORE = "lf.responses.v1";
 const TOOL_NAME = "1MV Listening Form";
@@ -391,12 +391,21 @@ async function submit() {
   if (S.screen === "thanks") renderThanks();
 }
 
+// Sheet lock: only responses submitted after the tabs were created (CUTOFF) and in today's column format
+// are sent. Older or old-format responses stay on the device (see ?admin) and never reach the Sheet.
+const CUTOFF = "2026-10-16T18:12:00Z";
+const sendable = r => r.saved >= CUTOFF && TOOLS[r.tool] && r.cols.join("") === columns(TOOLS[r.tool]).join("");
+
 let syncing = false;
 async function syncWaiting() {
   if (!SHEET_URL || syncing || !navigator.onLine) return;
   syncing = true;
   try {
-    for (const r of load(STORE, []).filter(r => !r.sent)) {
+    const waiting = load(STORE, []);
+    let marked = false;
+    for (const r of waiting) if (!r.sent && !r.skipped && !sendable(r)) { r.skipped = true; marked = true; }
+    if (marked) save(STORE, waiting);
+    for (const r of waiting.filter(r => !r.sent && !r.skipped)) {
       try {
         await fetch(SHEET_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ tool: TOOL_NAME, persona: r.tool, columns: r.cols, values: r.values }) });
@@ -433,13 +442,13 @@ function renderAdmin() {
   const all = load(STORE, []);
   const rows = Object.values(TOOLS).map(tool => {
     const recs = all.filter(r => r.tool === tool.key);
-    return `<tr><td>${esc(tool.title.en)}</td><td>${recs.length}</td><td>${recs.filter(r => r.sent).length}</td><td>${recs.filter(r => !r.sent).length}</td>
+    return `<tr><td>${esc(tool.title.en)}</td><td>${recs.length}</td><td>${recs.filter(r => r.sent).length}</td><td>${recs.filter(r => !r.sent && !r.skipped).length}</td><td>${recs.filter(r => r.skipped).length}</td>
       <td><button class="btn" data-csv="${tool.key}" ${recs.length ? "" : "disabled"}>CSV</button></td></tr>`;
   }).join("");
   app.innerHTML = `<section class="screen">
     <div class="panel stack"><h1>Responses on this device</h1>
       <p class="small">Google Sheet: ${SHEET_URL ? "connected" : "not set up — responses stay on this device until it is"}</p></div>
-    <div class="panel stack"><div class="tbl"><table><thead><tr><th>Form</th><th>Saved</th><th>Sent</th><th>Waiting</th><th>Download</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="panel stack"><div class="tbl"><table><thead><tr><th>Form</th><th>Saved</th><th>Sent</th><th>Waiting</th><th>Not sent (before lock / old format)</th><th>Download</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="row"><button class="big" id="sync" ${SHEET_URL ? "" : "disabled"}>Send waiting now</button><a class="ghost" href="./">Open the form</a></div></div></section>`;
   app.querySelectorAll("[data-csv]").forEach(b => b.onclick = () => {
     const blob = new Blob([csvOf(all.filter(r => r.tool === b.dataset.csv))], { type: "text/csv;charset=utf-8" });
